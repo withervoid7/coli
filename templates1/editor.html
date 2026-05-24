@@ -1,0 +1,15 @@
+
+<div id="edit-component" id="editor-{{ note.id }}">
+    <textarea name="content" class=".edit-content">{{ note.content }}</textarea>
+    <button class="done-btn">Done</button>
+    <script>
+        $("#editor-{{ note.id }} .done-btn").on("click", function () {
+          $.post("/update", {
+            id: {{ note.id }},
+            content: $("#editor-{{ note.id }} .edit-content").val(),
+          }, function () {
+            location.reload();
+          });
+        });
+    </script>
+</div>

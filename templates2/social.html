@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socialno omrežje</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
+        .objava { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 5px; background: #fafafa; }
+        .slika { max-width: 100%; height: auto; display: block; margin-top: 10px; border-radius: 4px; }
+        .komentarji-sekcija { background: #eee; padding: 10px; margin-top: 10px; border-radius: 4px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    
+    <h2>Pozdravljen, @{{ session[app2_username] }}!</h2>
+    <a href = "/logout" style="color: red;">Odjava</a>
+    <hr>
+
+    <form action="/" method ="post" enctype="multipart/form-data">
+        <textarea name="vsebina" placeholder="wazzup" required style="width: 100%; height: 80px; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ccc;"></textarea><br>
+        <input type="file" name="slika" accept="image/*" style="margin-bottom: 10px;"><br>
+        <button type="submit" style="background-color: #007BFF; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Objavi</button>
+    </form>
+    <hr>
+
+    <h3>Skupne objave</h3>
+    {% for objava in objave %}
+        <div class="objava">
+            <strong>{{ objava['username'] }}</strong>
+            <p>{{ objava['vsebina'] }}</p>
+            {% if objava['slika_url'] %}
+                <img src="{{ url_for('static', filename=objava['slika_url']) }}" alt="Objavljena slika" class="slika">
+            {% endif %}
+            <div class="komentarji-sekcija">
+                <h4>Komentarji:</h4>
+                {% for komentar in objava['komentarji'] %}
+                    <p><strong>{{ komentar.avtor }}</strong>: {{ komentar.vsebina }}</p>
+                {% endfor %}
+                
+                <p>
+                    <button onclick="like-{{ objava['id'] }}">Like</button>
+                    <span id="like-count-{{ objava['id'] }}">{{ objava['likes'] }}</span> Likes
+                </p>
+                <div class="komentarji-sekcija">
+                    <h4>Komentiraj:</h4>
+                    {% for kom in komentarji %}
+                        {% if kom['objava_id'] == objava['id'] %}
+                            <p><strong>@{{ kom['username'] }}</strong>: {{ kom['tekst'] }}</p>
+                        {% endif %}
+                    {% endfor %}
+
+                    <form action="/" method = "POST">
+                        <input type="hidden" name="objava_id" value="{{ objava['id'] }}">
+                        <textarea name="tekst" placeholder="Napiši komentar..." required style="width: 100%; height: 60px; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ccc;"></textarea><br>
+                        <button type="submit" style="background-color: #007BFF; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Objavi komentar</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+        
+        <script>
+            function like(id) {
+                fetch(`/like/${id}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.like !== undefined) {
+                            document.getElementById(`like-count-${id}`).textContent = data.like;
+                        }
+                    })
+                    .catch(error => console.error('Napaka:', error));
+            }
+        </script>
+        
+    {% endfor %}
+</body>
+</html>
