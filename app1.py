@@ -16,8 +16,10 @@ def index():
         return redirect("/login")
     
     con= sqlite3.connect("db/database.db")
+    con.row_factory = sqlite3.row
     cursor= con.cursor()
     user = cursor.execute("select * from users where username = ?",(session["user"],)).fetchone ()
+
 
     con.close()
     return render_template("index.html", user=user)
@@ -30,10 +32,11 @@ def login():
         con = sqlite3.connect("db/database.db")
         cursor = con.cursor()
         db_pass = cursor.execute("SELECT password from Users Where username = ?", (username,)).fetchone()
-        con.close
+        con.close()
         if db_pass and db_pass[0]== password:
             session["user"]=username
             return redirect("/")
+            
     return render_template("login.html")
 
 @app.route("/register", methods=["POST","GET"])

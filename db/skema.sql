@@ -4,5 +4,15 @@ create table if not exists Users(
     password varchar(30)
 );
 
-insert into Users(username,password)
-values ('Gaper','femboys');
+create table if not exists note (
+    id int auto_increment primary key,
+    creator _username varchar(32),
+    title varchar(200),
+    content text,
+
+    Foreign key (creator_username) references user(username)
+);
+
+insert int users (
+    username, password
+) values ('test','test');
