@@ -11,10 +11,10 @@ app = Flask(__name__,
 
 app.secret_key = 'coolman'
 DATABASE = 'db2/database2.db'
-upload_folder = 'static2/uploads'
+UPLOAD_FOLDER = 'static2/uploads'
 
 os.makedirs('db2', exist_ok=True)
-os.makedirs(upload_folder, exist_ok=True)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def get_db():
     conn = sqlite3.connect(DATABASE)
@@ -25,34 +25,38 @@ def initiation_db():
     with get_db() as db:
         db.execute("""
         CREATE TABLE IF NOT EXISTS users(
-        id int primary_key autoincrement,
-        username text unique not null,
-        password text not null,
-        sec_q text not null,
-        sec_a text not null
-    );
-     """)
-    db.execute("""
-    CREATE TABLE IF NOT EXISTS posts(
-        id int primary_key autoincrement,
-        user_id int not null,
-        besedilo text not null,
-        picture text not null,
-        likes int default 0,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-    );
-    """)
-    db.execute("""
-    CREATE TABLE IF NOT EXISTS comments(
-        id int primary_key autoincrement,
-        post_id int not null,
-        user_id int not null,
-        comment text not null,
-        FOREIGN KEY (post_id) REFERENCES posts(id),
-        FOREIGN KEY (user_id) REFERENCES users(id)
-    );
-    """)
-    db.commit()
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            sec_q TEXT NOT NULL,
+            sec_a TEXT NOT NULL
+        );
+        """)
+        
+        # Tabela za objave
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS posts(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            besedilo TEXT NOT NULL,
+            picture TEXT,
+            likes INTEGER DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        """)
+        
+        # Tabela za komentarje
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS comments(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            comment TEXT NOT NULL,
+            FOREIGN KEY (post_id) REFERENCES posts(id),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        """)
+        db.commit()
 
 initiation_db()
 
@@ -68,11 +72,11 @@ def register():
 
         db = get_db()
         try:
-            db.execute("""INSERT INTO users (username, password, sec_q, sec_a) VALUES (?, ?, ?, ?)""",
+            db.execute("INSERT INTO users (username, password, sec_q, sec_a) VALUES (?, ?, ?, ?)",
                         (username, password, sec_q, sec_a))
             db.commit()
             session['user'] = username
-            return redirect(url_for('index'))
+            return redirect(url_for('login'))
         except sqlite3.IntegrityError:
             return "Username already exists", 400
 
@@ -104,42 +108,52 @@ def social():
     if 'app2_user_id' not in session:
         return redirect(url_for('login'))
 
-    db = get_db()
-
     if request.method == 'POST' and 'besedilo' in request.form:
-        if 'bededilo' in request.form:
-            besedilo = request.form['besedilo']
-            slika = request.files['slika']
-            slika_url = None
+        besedilo = request.form['besedilo']
+        file = request.files.get('slika')
+        slika_url = ""
 
-            if slika and slika.filename != '':
-                filename = secure_filename(slika.filename)
-                slika.save(os.path.join(upload_folder, filename))
-                slika_url = f'uploads/{filename}'
-    
-            db.execute("""INSERT INTO posts (user_id, besedilo, slika_url) VALUES (?, ?, ?)""",
-                (session['app2_user_id'], besedilo, slika_url))
+        if file and file.filename != '':
+            filename = secure_filename(file.filename)
+            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+            
+            pot_do_datoteke = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(pot_do_datoteke)
+            slika_url = pot_do_datoteke
+
+        with get_db() as db:
+            db.execute("""
+                INSERT INTO posts (user_id, besedilo, picture) 
+                VALUES (?, ?, ?)
+            """, (session['app2_user_id'], besedilo, slika_url if slika_url else None))
             db.commit()
-            return redirect(url_for('social'))
+        return redirect(url_for('social'))
 
-        if 'vsebina_komentarja' in request.form:
-            post_id = request.form['post_id']
-            tekst = request.form['vsebina_komentarja']
+    if request.method == 'POST' and 'vsebina_komentarja' in request.form:
+        post_id = request.form['post_id']
+        tekst = request.form['vsebina_komentarja']
 
+        with get_db() as db:
             db.execute("""INSERT INTO comments (post_id, user_id, tekst) VALUES (?, ?, ?)""",
                         (post_id, session['app2_user_id'], tekst))
             db.commit()
-            return redirect(url_for('social'))
+        return redirect(url_for('social'))
 
     """pridobivanje objav"""
+    with get_db() as db:
+        post = db.execute("""
+            SELECT posts.id, posts.besedilo, posts.picture AS slika_url, posts.likes, users.username 
+            FROM posts 
+            JOIN users ON posts.user_id = users.id
+            ORDER BY posts.id DESC
+        """).fetchall()
 
-    post = db.execute("""select posts.id, posts.besedilo, posts.slika_url, posts.likes, users.username from posts
-    join users on posts.user_id = users.id
-    order by posts.id desc""").fetchall()
-
-    """pridobivanje komentarjev"""
-    komentarji = db.execute("""select komentarji.post_id, komentarji.tekst, users.username from komentarji
-    join users on komentarji.user_id = users.id""").fetchall()
+        """pridobivanje komentarjev"""
+        komentarji = db.execute("""
+            SELECT comments.post_id, comments.comment AS tekst, users.username 
+            FROM comments 
+            JOIN users ON comments.user_id = users.id
+        """).fetchall()
 
     return render_template('social.html', post=post, komentarji=komentarji)
 
@@ -157,5 +171,25 @@ def like(post_id):
     new_likes = db.execute("""SELECT likes FROM posts WHERE id = ?""", (post_id,)).fetchone()['likes']
     return jsonify({'likes': new_likes})
 
+@app.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():  # <--- Ime funkcije
+    if request.method == 'POST':
+        username = request.form['username']
+        sec_a = request.form['sec_a'].lower().strip()  # Usklajeno z bazo (sec_a)
+        new_password = generate_password_hash(request.form['new_password'])
+        
+        with get_db() as db:
+            # Preverimo, če se uporabnik in odgovor ujemata
+            user = db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+            
+            if user and user['sec_a'] == sec_a:
+                db.execute("UPDATE users SET password = ? WHERE username = ?", (new_password, username))
+                db.commit()
+                return redirect(url_for('login'))
+            else:
+                return "Napačno uporabniško ime ali odgovor na varnostno vprašanje!"
+                
+    return render_template('reset-password.html')
 if __name__ == '__main__':
+
     app.run(port=5001, debug=True)
