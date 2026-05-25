@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+    <meta charset="UTF-8">
+    <title>App 3 - Potovalni Dnevnik</title>
+</head>
+<body style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Potovalni Dnevnik uporabnika @{{ session['user'] }}</h2>
+        <a href="/logout" style="color: red; font-weight: bold; text-decoration: none;">Odjava</a>
+    </div>
+    <hr>
+
+    <h3>Dodaj novo destinacijo</h3>
+    <form method="POST" style="background: #f4f4f4; padding: 15px; border-radius: 5px; margin-bottom: 30px;">
+        <input type="text" name="mesto" placeholder="Mesto (npr. Ljubljana, Paris, Tokyo)" style="width: 45%; padding: 8px; margin-right: 5%;" required>
+        <input type="text" name="drzava" placeholder="Država (npr. Slovenia)" style="width: 45%; padding: 8px;" required><br><br>
+        <textarea name="opomba" placeholder="Tvoji načrti ali spomini za ta kraj..." rows="3" style="width: 100%;" required></textarea><br><br>
+        <button type="submit" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Dodaj na seznam</button>
+    </form>
+
+    <h3>Moje Destinacije & Vreme v živo 🌍</h3>
+    {% if not podatki %}
+        <p>Tvoj dnevnik je še prazen. Dodaj svoj prvi kraj zgoraj!</p>
+    {% else %}
+        {% for d in podatki %}
+            <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h4 style="margin: 0 0 5px 0;">📍 {{ d.mesto }}, {{ d.drzava }}</h4>
+                    <p style="margin: 0; color: #555;">{{ d.opomba }}</p>
+                </div>
+                <div style="text-align: right; display: flex; align-items: center; gap: 20px;">
+                    <div style="background: #e3f2fd; padding: 8px 12px; border-radius: 20px; font-weight: bold; color: #0d47a1;">
+                        ☁️ {{ d.vreme }}
+                    </div>
+                    <form action="/brisi/{{ d.id }}" method="POST" style="margin: 0;">
+                        <button type="submit" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer;">Izbriši</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+</body>
+</html>
