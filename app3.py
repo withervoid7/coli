@@ -3,6 +3,8 @@ import sqlite3
 import requests
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
+import time
+
 
 app = Flask(__name__, template_folder='templates3')
 app.secret_key = "dež"
@@ -10,6 +12,10 @@ app.secret_key = "dež"
 DB_PATH = 'db3/database3.db'
 os.makedirs('db3', exist_ok=True)
 
+session_api = requests.Session()
+session_api.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+})
 def get_db():
     c = sqlite3.connect(DB_PATH)
     c.row_factory = sqlite3.Row
@@ -54,20 +60,28 @@ init_baza()
 #klic api
 
 def dobi_vreme(mesto):
-    # Strict 1.2 second timeout so the app CANNOT freeze
-    UDAREC_TIMEOUT = 1.2
+    # Bumped to 2.5 seconds to give the API breathing room over a standard connection
+    UDAREC_TIMEOUT = 2.5
     
     g_url = f"https://geocoding-api.open-meteo.com/v1/search?name={mesto}&count=1"
     try:
+        # Give the API a brief 100ms break before knocking on the door again
+        time.sleep(0.1)
+        
         # 1. Get Coordinates
-        r = requests.get(g_url, timeout=UDAREC_TIMEOUT).json()
+        r_resp = session_api.get(g_url, timeout=UDAREC_TIMEOUT)
+        r_resp.raise_for_status()
+        r = r_resp.json()
+        
         if "results" in r and len(r["results"]) > 0:
             lat = r["results"][0]["latitude"]
             lon = r["results"][0]["longitude"]
             
             # 2. Get Weather
             w_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
-            w_res = requests.get(w_url, timeout=UDAREC_TIMEOUT).json()
+            w_resp = session_api.get(w_url, timeout=UDAREC_TIMEOUT)
+            w_resp.raise_for_status()
+            w_res = w_resp.json()
             
             if "current_weather" in w_res:
                 return f"{w_res['current_weather']['temperature']} °C"
@@ -78,6 +92,10 @@ def dobi_vreme(mesto):
     except requests.exceptions.Timeout:
         print(f"!!! API se je vlekel preveč počasi za {mesto}, aktiviran timeout !!!")
         return "API Timeout"
+    except requests.exceptions.HTTPError as http_err:
+        # If they are rate-limiting you, it will catch here (e.g., HTTP 429 Too Many Requests)
+        print(f"HTTP Error (Verjetno API blokada/limit): {http_err}")
+        return "API Limit"
     except Exception as e:
         print(f"Druga napaka pri vremenu za {mesto}: {e}")
         return "N/A"
@@ -155,12 +173,11 @@ def dashboard():
     
     # procesiranje forme za nov kraj
     if request.method == 'POST':
-        mesto = request.form['mesto']    # <-- Tukaj smo shranili v "mesto"
+        mesto = request.form['mesto']
         drzava = request.form['drzava']
         opomba = request.form['opomba']
         
-        # API pokličemo tako, da mu podamo "mesto" in NE "m"!
-        trenutno_vreme = dobi_vreme(mesto) # <-- POPRAVLJENO (prej je bil tu 'm')
+        trenutno_vreme = dobi_vreme(mesto) 
         
         db = get_db()
         db.execute(
@@ -178,13 +195,12 @@ def dashboard():
     # Ustvarimo prazen seznam, da ga peš napolnimo
     končni_seznam = []
     for lokacija in vse_vrstice:
-        # Podatke preložimo v dict na roke, ampak vreme vzamemo iz baze (brez API laga!)
         temp_podatki = {}
         temp_podatki['id'] = lokacija['id']
         temp_podatki['mesto'] = lokacija['mesto']
         temp_podatki['drzava'] = lokacija['drzava']
         temp_podatki['opomba'] = lokacija['opomba']
-        temp_podatki['vreme'] = lokacija['vreme']  # <-- TUKAJ JE TRIK! Vreme je že v bazi.
+        temp_podatki['vreme'] = dobi_vreme(lokacija['mesto']) 
         
         končni_seznam.append(temp_podatki)
         

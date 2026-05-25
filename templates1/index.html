@@ -1,12 +1,50 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zapiski</title>
+    <title>Notes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Zapiski</h1>
-    <p>test</p>
+    <h1>Notes</h1>
+    <div id="notes">
+        <button id="create-note">Create note</button>
+
+        {% for note in notes_list %}
+        <div class="note">
+            <h1 class="note-title">{{ note.title }}</h1>
+            <div class="note-content">{{ note.content | safe}}</div>
+            <div class="note-actions">
+                <button class="edit-btn" data-id="{{note.id}}">edit</button>
+                <button class="btn-delete delete-btn" data-id="{{note.id}}">delete</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script src="https://code.jquery.com/jquery-4.0.0.min.js" integrity="sha256-OaVG6prZf4v69dPg6PhVattBXkcOWQB62pdZ3ORyrao=" crossorigin="anonymous"></script>
+    <script>
+        $("#create-note").on("click", function () {
+            $.get("/create-note", function(data) {
+                $(this).replaceWith(data);
+            }.bind(this));
+        });
+        $(".note .edit-btn").on("click", function () {
+          const id = $(this).data("id");
+          const btn = $(this);
+          $.post("/edit-note", { id: id }, function (data) {
+            btn.closest(".note").replaceWith(data);
+          });
+        });
+        $(".note .delete-btn").on("click", function () {
+          const id = $(this).data("id");
+          const btn = $(this);
+          $.post("/delete-note", { id: id }, function () {
+            btn.closest(".note").remove();
+          });
+        });
+    </script>
 </body>
 </html>
