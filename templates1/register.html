@@ -1,20 +1,107 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
-    <link rel="stylesheet" href="/static1/style.css">
+    <title>Registracija - Zapiski</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #121212; 
+            color: #e0e0e0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+        .card { 
+            background-color: #1e1e1e; 
+            border: 1px solid #2f2f2f; 
+            border-radius: 8px; 
+            padding: 40px; 
+            width: 100%; 
+            max-width: 400px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+        }
+        h2 { 
+            margin-top: 0; 
+            color: #ffffff; 
+            text-align: center; 
+            margin-bottom: 30px; 
+        }
+        .form-group { 
+            margin-bottom: 20px; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            color: #b3b3b3; 
+        }
+        input[type="text"], input[type="password"] { 
+            width: 100%; 
+            padding: 12px; 
+            border-radius: 6px; 
+            border: 1px solid #393e46; 
+            background-color: #2d3138; 
+            color: #ffffff; 
+            font-size: 16px; 
+            box-sizing: border-box; 
+            transition: border-color 0.2s ease;
+        }
+        input[type="text"]:focus, input[type="password"]:focus {
+            border-color: #2ecc71;
+            outline: none;
+        }
+        .btn { 
+            width: 100%; 
+            padding: 12px; 
+            border-radius: 6px; 
+            background-color: #2ecc71; 
+            color: white; 
+            border: none; 
+            font-size: 16px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            margin-top: 10px; 
+            transition: background 0.2s ease;
+        }
+        .btn:hover { 
+            background-color: #27ae60; 
+        }
+        .footer-text { 
+            text-align: center; 
+            margin-top: 20px; 
+            font-size: 14px; 
+            color: #777; 
+        }
+        .footer-text a { 
+            color: #2ecc71; 
+            text-decoration: none; 
+            font-weight: bold; 
+        }
+        .footer-text a:hover { 
+            text-decoration: underline; 
+        }
+    </style>
 </head>
 <body>
-    <h1>Register</h1>
-    <form class="auth-form" action="/register" method="post">
-        <input type="text" name="username" id="username" placeholder="Username">
-        <input type="password" name="password" id="password" placeholder="Password">
-        <div class="auth-links">
-            <button type="submit">Register</button>
-            <a href="/login">Login</a>
+    <div class="card">
+        <h2>Ustvari nov račun 🚀</h2>
+        <form action="/register" method="POST">
+            <div class="form-group">
+                <label for="username">Izberi uporabniško ime</label>
+                <input type="text" id="username" name="username" required placeholder="Npr. Colko123">
+            </div>
+            <div class="form-group">
+                <label for="password">Izberi varno geslo</label>
+                <input type="password" id="password" name="password" required placeholder="Vnesi geslo...">
+            </div>
+            <button type="submit" class="btn">Ustvari račun</button>
+        </form>
+        <div class="footer-text">
+            Že imaš račun? <a href="/login">Prijavi se tukaj</a>
         </div>
-    </form>
+    </div>
 </body>
 </html>

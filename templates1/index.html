@@ -1,50 +1,155 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notes</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Moji Zapiski</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #121212; 
+            color: #e0e0e0; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+        }
+        header { 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            border-bottom: 1px solid #2f2f2f; 
+            padding-bottom: 25px; 
+            margin-bottom: 30px; 
+            gap: 20px;
+        }
+        h1 { 
+            margin: 0; 
+            color: #ffffff; 
+            font-size: 42px;
+            text-align: center;
+            width: 100%;
+        }
+        .header-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            width: 100%;
+        }
+        .btn { 
+            display: inline-block; 
+            padding: 10px 20px; 
+            border-radius: 6px; 
+            text-decoration: none; 
+            font-weight: bold; 
+            cursor: pointer; 
+            border: none; 
+            font-size: 14px; 
+            transition: background 0.2s ease;
+        }
+        .btn-primary { 
+            background-color: #00adb5; 
+            color: #ffffff; 
+        }
+        .btn-primary:hover { 
+            background-color: #008c94; 
+        }
+        .btn-danger { 
+            background-color: #ff4d4d; 
+            color: #ffffff; 
+        }
+        .btn-danger:hover { 
+            background-color: #e60000; 
+        }
+        .btn-secondary { 
+            background-color: #393e46; 
+            color: #eeeeee; 
+        }
+        .btn-secondary:hover { 
+            background-color: #2d3138; 
+        }
+        .btn-logout {
+            background-color: #c0392b;
+            color: #ffffff;
+        }
+        .btn-logout:hover {
+            background-color: #a62c21;
+        }
+        .notes-grid { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 20px; 
+        }
+        .note-card { 
+            background-color: #1e1e1e; 
+            border: 1px solid #2f2f2f; 
+            border-radius: 8px; 
+            padding: 20px; 
+            position: relative; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
+        }
+        .note-title { 
+            font-size: 20px; 
+            font-weight: bold; 
+            color: #00adb5; 
+            margin-top: 0; 
+            margin-bottom: 10px; 
+        }
+        .note-content { 
+            color: #b3b3b3; 
+            line-height: 1.6; 
+            margin-bottom: 20px; 
+        }
+        .note-actions { 
+            display: flex; 
+            gap: 10px; 
+            justify-content: flex-end; 
+        }
+        form { 
+            display: inline; 
+        }
+    </style>
 </head>
 <body>
-    <h1>Notes</h1>
-    <div id="notes">
-        <button id="create-note">Create note</button>
-
-        {% for note in notes_list %}
-        <div class="note">
-            <h1 class="note-title">{{ note.title }}</h1>
-            <div class="note-content">{{ note.content | safe}}</div>
-            <div class="note-actions">
-                <button class="edit-btn" data-id="{{note.id}}">edit</button>
-                <button class="btn-delete delete-btn" data-id="{{note.id}}">delete</button>
+    <div class="container">
+        
+        <header>
+            <h1>📝 Moji Zapiski</h1>
+            <div class="header-buttons">
+                <a href="/create-note" class="btn btn-primary">+ Nov zapisek</a>
+                <a href="/logout" class="btn btn-logout">Odjava 🚪</a>
             </div>
-        </div>
-        {% endfor %}
-    </div>
+        </header>
 
-    <script src="https://code.jquery.com/jquery-4.0.0.min.js" integrity="sha256-OaVG6prZf4v69dPg6PhVattBXkcOWQB62pdZ3ORyrao=" crossorigin="anonymous"></script>
-    <script>
-        $("#create-note").on("click", function () {
-            $.get("/create-note", function(data) {
-                $(this).replaceWith(data);
-            }.bind(this));
-        });
-        $(".note .edit-btn").on("click", function () {
-          const id = $(this).data("id");
-          const btn = $(this);
-          $.post("/edit-note", { id: id }, function (data) {
-            btn.closest(".note").replaceWith(data);
-          });
-        });
-        $(".note .delete-btn").on("click", function () {
-          const id = $(this).data("id");
-          const btn = $(this);
-          $.post("/delete-note", { id: id }, function () {
-            btn.closest(".note").remove();
-          });
-        });
-    </script>
+        <div class="notes-grid">
+            {% if notes_list %}
+                {% for note in notes_list %}
+                    <div class="note-card">
+                        <div class="note-title">{{ note.title }}</div>
+                        <div class="note-content">{{ note.content | safe }}</div>
+                        <div class="note-actions">
+                            
+                            <form action="/edit-note" method="POST">
+                                <input type="hidden" name="id" value="{{ note.id }}">
+                                <button type="submit" class="btn btn-secondary">Uredi</button>
+                            </form>
+                            
+                            <form action="/delete-note" method="POST" onsubmit="return confirm('Ali res želiš izbrisati ta zapisek?');">
+                                <input type="hidden" name="id" value="{{ note.id }}">
+                                <button type="submit" class="btn btn-danger">Izbriši</button>
+                            </form>
+                            
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align: center; color: #777; margin-top: 50px;">Nimaš še nobenih zapiskov.</p>
+                <p style="text-align: center;"><a href="/create-note" class="btn btn-primary">+ Ustvari prvi zapisek</a></p>
+            {% endif %}
+        </div>
+        
+    </div>
 </body>
 </html>

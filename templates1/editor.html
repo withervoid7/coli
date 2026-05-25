@@ -1,18 +1,162 @@
 
-<link rel="stylesheet" href="/static1/style.css">
-<div class="edit-component" id="editor-{{ note.id }}">
-    <input type="text" class="edit-title" value="{{note.title}}">
-    <textarea name="content" class="edit-content">{{ note.content }}</textarea>
-    <button class="done-btn">Done</button>
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urejevalnik Zapiskov</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #121212; 
+            color: #e0e0e0; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+        }
+        .actions { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 20px; 
+        }
+        .btn { 
+            display: inline-block;
+            padding: 10px 20px; 
+            border-radius: 6px; 
+            text-decoration: none; 
+            font-weight: bold; 
+            cursor: pointer; 
+            border: none; 
+            font-size: 14px; 
+            transition: background 0.2s ease;
+        }
+        .btn-primary { 
+            background-color: #00adb5; 
+            color: #ffffff; 
+        }
+        .btn-primary:hover {
+            background-color: #008c94;
+        }
+        .btn-secondary { 
+            background-color: #393e46; 
+            color: #eeeeee; 
+        }
+        .btn-secondary:hover { 
+            background-color: #2d3138; 
+        }
+        .editor-form { 
+            background-color: #1e1e1e; 
+            padding: 30px; 
+            border-radius: 8px; 
+            border: 1px solid #2f2f2f; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .form-group { 
+            margin-bottom: 20px; 
+        }
+        label { 
+            display: block; 
+            font-weight: bold; 
+            margin-bottom: 8px; 
+            color: #00adb5; 
+        }
+        input[type="text"], textarea { 
+            width: 100%; 
+            padding: 12px; 
+            border-radius: 6px; 
+            border: 1px solid #393e46; 
+            background-color: #2d3138; 
+            color: #ffffff; 
+            font-size: 16px; 
+            box-sizing: border-box; 
+            transition: border-color 0.2s ease;
+        }
+        input[type="text"]:focus, textarea:focus {
+            border-color: #00adb5;
+            outline: none;
+        }
+        textarea { 
+            height: 350px; 
+            resize: vertical; 
+            font-family: 'Courier New', Courier, monospace; 
+            line-height: 1.5;
+        }
+        .footer-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        #status-msg { 
+            font-weight: bold; 
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="actions">
+            <a href="/" class="btn btn-secondary">⬅ Nazaj na zapiske</a>
+        </div>
+
+        <div class="editor-form">
+            <form id="noteForm">
+                <input type="hidden" id="noteId" name="id" value="{{ note.id }}">
+                
+                <div class="form-group">
+                    <label for="title">Naslov zapiska</label>
+                    <input type="text" id="title" name="title" value="{{ note.title }}" placeholder="Vnesi naslov zapiska...">
+                </div>
+
+                <div class="form-group">
+                    <label for="content">Vsebina (podpira Markdown)</label>
+                    <textarea id="content" name="content" placeholder="Tukaj začni pisati svoje misli (uporabiš lahko *poševno*, **krepko**, # naslove... )">{{ note.content }}</textarea>
+                </div>
+
+                <div class="footer-actions">
+                    <button type="button" onclick="saveNote()" class="btn btn-primary">💾 Shrani zapisek</button>
+                    <span id="status-msg"></span>
+                </div>
+            </form>
+        </div>
+        
+    </div>
+
     <script>
-        $("#editor-{{ note.id }} .done-btn").on("click", function () {
-          $.post("/update", {
-            id: {{ note.id }},
-            content: $("#editor-{{ note.id }} .edit-content").val(),
-            title: $("#editor-{{ note.id }} .edit-title").val(),
-          }, function () {
-            location.reload();
-          });
-        });
+        function saveNote() {
+            const status = document.getElementById("status-msg");
+            status.innerText = "Shranjujem...";
+            status.style.color = "#eeeeee";
+            
+            const formData = new FormData();
+            formData.append("id", document.getElementById("noteId").value);
+            formData.append("title", document.getElementById("title").value);
+            formData.append("content", document.getElementById("content").value);
+
+            fetch("/update", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                if(data === "Success") {
+                    status.innerText = "✓ Uspešno shranjeno!";
+                    status.style.color = "#2ecc71";
+                    // Status po 3 sekundah zbledi
+                    setTimeout(() => { status.innerText = ""; }, 3000);
+                } else {
+                    status.innerText = "❌ Napaka strežnika pri shranjevanju.";
+                    status.style.color = "#ff4d4d";
+                }
+            })
+            .catch(err => {
+                status.innerText = "❌ Napaka: Ni povezave do strežnika.";
+                status.style.color = "#ff4d4d";
+            });
+        }
     </script>
-</div>
+</body>
+</html>
