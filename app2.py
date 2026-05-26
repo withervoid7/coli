@@ -33,7 +33,7 @@ def initiation_db():
         );
         """)
         
-        # Tabela za objave
+        #objave
         db.execute("""
         CREATE TABLE IF NOT EXISTS posts(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,7 +45,7 @@ def initiation_db():
         );
         """)
         
-        # Tabela za komentarje
+        # komentari
         db.execute("""
         CREATE TABLE IF NOT EXISTS comments(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -172,14 +172,13 @@ def like(post_id):
     return jsonify({'likes': new_likes})
 
 @app.route('/reset-password', methods=['GET', 'POST'])
-def reset_password():  # <--- Ime funkcije
+def reset_password():
     if request.method == 'POST':
         username = request.form['username']
-        sec_a = request.form['sec_a'].lower().strip()  # Usklajeno z bazo (sec_a)
+        sec_a = request.form['sec_a'].lower().strip() 
         new_password = generate_password_hash(request.form['new_password'])
         
         with get_db() as db:
-            # Preverimo, če se uporabnik in odgovor ujemata
             user = db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
             
             if user and user['sec_a'] == sec_a:

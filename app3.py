@@ -32,7 +32,6 @@ def init_baza():
         password TEXT NOT NULL
     );
     """)
-    # Tabela za destinacije
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS destinations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,14 +43,12 @@ def init_baza():
     );
     """)
     
-    # --- DODAJ TA DEL SPODAJ (Varnostni popravek) ---
+   
     try:
         cursor.execute("ALTER TABLE destinations ADD COLUMN vreme TEXT;")
         conn.commit()
     except sqlite3.OperationalError:
-        # Če stolpec že obstaja, bo javilo napako, ki jo preprosto ignoriramo
         pass
-    # -------------------------------------------------
     
     conn.close()
 
@@ -60,15 +57,13 @@ init_baza()
 #klic api
 
 def dobi_vreme(mesto):
-    # Bumped to 2.5 seconds to give the API breathing room over a standard connection
     UDAREC_TIMEOUT = 2.5
     
     g_url = f"https://geocoding-api.open-meteo.com/v1/search?name={mesto}&count=1"
     try:
-        # Give the API a brief 100ms break before knocking on the door again
         time.sleep(0.1)
         
-        # 1. Get Coordinates
+        # cords
         r_resp = session_api.get(g_url, timeout=UDAREC_TIMEOUT)
         r_resp.raise_for_status()
         r = r_resp.json()
@@ -77,7 +72,7 @@ def dobi_vreme(mesto):
             lat = r["results"][0]["latitude"]
             lon = r["results"][0]["longitude"]
             
-            # 2. Get Weather
+            # weather
             w_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
             w_resp = session_api.get(w_url, timeout=UDAREC_TIMEOUT)
             w_resp.raise_for_status()
@@ -93,7 +88,6 @@ def dobi_vreme(mesto):
         print(f"!!! API se je vlekel preveč počasi za {mesto}, aktiviran timeout !!!")
         return "API Timeout"
     except requests.exceptions.HTTPError as http_err:
-        # If they are rate-limiting you, it will catch here (e.g., HTTP 429 Too Many Requests)
         print(f"HTTP Error (Verjetno API blokada/limit): {http_err}")
         return "API Limit"
     except Exception as e:
@@ -117,7 +111,7 @@ def registracija():
         
         db = get_db()
         try:
-            # S tem ukazom prisilimo bazo, da nujno naredi tabelo, če je slučajno ni!
+            # če ni baze jo naredi
             db.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -126,7 +120,7 @@ def registracija():
             );
             """)
             
-            # Zdaj pa vnos
+            #vnos
             db.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_pass))
             db.commit()
             db.close()
@@ -134,7 +128,7 @@ def registracija():
         except Exception as e:
             db.close()
             print("!!! TOLE JE PRAVA NAPAKA V TERMINALU !!! :", e)
-            return f"Napaka v bazi: {e}"  # <--- To ti bo zdaj izpisalo TOČNO napako direktno na ekran v brskalniku!
+            return f"Napaka v bazi: {e}"
             
     return render_template('register.html')
 
@@ -171,7 +165,6 @@ def dashboard():
         
     u_id = session['user_id']
     
-    # procesiranje forme za nov kraj
     if request.method == 'POST':
         mesto = request.form['mesto']
         drzava = request.form['drzava']
@@ -192,7 +185,6 @@ def dashboard():
     vse_vrstice = db.execute("SELECT * FROM destinations WHERE user_id = ?", (u_id,)).fetchall()
     db.close()
     
-    # Ustvarimo prazen seznam, da ga peš napolnimo
     končni_seznam = []
     for lokacija in vse_vrstice:
         temp_podatki = {}
